@@ -26,12 +26,23 @@ public class DatabaseConnection {
                     );
                 """;
 
+        String createCustomerTable = """
+                    CREATE TABLE IF NOT EXISTS customers (
+                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,
+                        email VARCHAR(100) NOT NULL UNIQUE,
+                        phone VARCHAR(20) NOT NULL
+                    );
+                """;
+
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
             stmt.execute(createProductTable);
-            System.out.println("Intialize DB successfully.");
+            stmt.execute(createCustomerTable); 
+            System.out.println("[DB] Database schema initialized successfully.");
         } catch (SQLException e) {
-            System.err.println("DB Error : " + e.getMessage());
+            System.err.println("[DB Error] Failed to initialize database: " + e.getMessage());
         }
     }
+
 }
