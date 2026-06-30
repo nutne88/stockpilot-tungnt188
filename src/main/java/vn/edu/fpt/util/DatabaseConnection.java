@@ -34,11 +34,33 @@ public class DatabaseConnection {
                         phone VARCHAR(20) NOT NULL
                     );
                 """;
+        String createOrderTable = """
+                    CREATE TABLE IF NOT EXISTS orders (
+                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                        customer_id BIGINT NOT NULL,
+                        order_date TIMESTAMP NOT NULL,
+                        total_amount DECIMAL(15, 2) NOT NULL,
+                        FOREIGN KEY (customer_id) REFERENCES customers(id)
+                    );
+                """;
 
+        String createOrderItemTable = """
+                    CREATE TABLE IF NOT EXISTS order_items (
+                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                        order_id BIGINT NOT NULL,
+                        product_id BIGINT NOT NULL,
+                        quantity INT NOT NULL,
+                        unit_price DECIMAL(15, 2) NOT NULL,
+                        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+                        FOREIGN KEY (product_id) REFERENCES products(id)
+                    );
+                """;
         try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             stmt.execute(createProductTable);
-            stmt.execute(createCustomerTable); 
+            stmt.execute(createCustomerTable);
+            stmt.execute(createOrderTable);
+            stmt.execute(createOrderItemTable);
             System.out.println("[DB] Database schema initialized successfully.");
         } catch (SQLException e) {
             System.err.println("[DB Error] Failed to initialize database: " + e.getMessage());
