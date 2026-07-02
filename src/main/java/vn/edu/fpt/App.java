@@ -7,6 +7,7 @@ import vn.edu.fpt.model.OrderItem;
 import vn.edu.fpt.repository.ProductRepository;
 import vn.edu.fpt.repository.CustomerRepository;
 import vn.edu.fpt.repository.OrderRepository;
+import vn.edu.fpt.repository.ReportRepository;
 import vn.edu.fpt.util.DatabaseConnection;
 
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ public class App {
         ProductRepository productRepo = new ProductRepository();
         CustomerRepository customerRepo = new CustomerRepository();
         OrderRepository orderRepo = new OrderRepository();
+        ReportRepository reportRepo = new ReportRepository(); // Khởi tạo Report Repo
 
         System.out.println("\n--- Testing Product SKU Validation ---");
         try {
@@ -41,8 +43,8 @@ public class App {
         System.out.println("\n--- Current Customer List in DB ---");
         customerRepo.findAll().forEach(System.out::println);
 
-        System.out.println("\n--- Preparing Mock Data for Order (Day 3) ---");
-        String uniqueSku = "SAM-" + (int) (Math.random() * 8999 + 1000);
+        System.out.println("\n--- Preparing Mock Data for Order ---");
+        String uniqueSku = "SAM-" + (int)(Math.random() * 8999 + 1000);
         Product phone = new Product(null, uniqueSku, "Samsung S26 Ultra", "Tech", new BigDecimal("1200"), 50);
         productRepo.save(phone);
 
@@ -74,6 +76,14 @@ public class App {
             }
         }
 
-        System.out.println("\n=== DAY 3 COMPLETED SUCCESSFULLY ===");
+        System.out.println("\n--- RUNNING SYSTEM ANALYTICS & REPORTS ---");
+        reportRepo.printRevenueReport();
+        reportRepo.printTopSellingProducts();
+
+        Product lowStockProduct = new Product(null, "LOW-9999", "Out of Stock Item", "Test", new BigDecimal("10"), 3);
+        productRepo.save(lowStockProduct);
+        reportRepo.printLowStockAlert();
+
+        System.out.println("\n=== DAY 4 COMPLETED SUCCESSFULLY ===");
     }
 }
