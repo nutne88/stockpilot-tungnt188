@@ -1,6 +1,7 @@
 package vn.edu.fpt.model;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import vn.edu.fpt.exception.InvalidInputException;
 
 public class Product {
@@ -86,5 +87,19 @@ public class Product {
     public String toString() {
         return String.format("ID: %d | SKU: %s | Name: %s | Category: %s | Price: %s VNĐ | Stock: %d",
                 id, sku, name, category, price.toString(), stockQuantity);
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Product)) return false;
+        Product other = (Product) o;
+        return Objects.equals(sku, other.sku);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(sku);
     }
 }

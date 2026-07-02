@@ -1,6 +1,7 @@
 package vn.edu.fpt.model;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class OrderItem {
     private Long id;
@@ -58,5 +59,25 @@ public class OrderItem {
 
     public void setUnitPrice(BigDecimal unitPrice) {
         this.unitPrice = unitPrice;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("OrderItem #%d | Order: %d | Product: %d | Qty: %d | Price: %s",
+                id, orderId, productId, quantity, unitPrice);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof OrderItem)) return false;
+        if (id == null) return false;
+        OrderItem other = (OrderItem) o;
+        return Objects.equals(id, other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }
