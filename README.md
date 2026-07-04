@@ -29,7 +29,7 @@ assignment's constraints.
 ## 2. Project structure
 
 ```
-src/main/java/vn/edu/fpt/
+src/main/java/com/stockpilot/
 ├── Main.java                  # entry point + CLI menu loop (only class that touches System.in/out)
 ├── model/                     # Product, Customer, Order, OrderItem
 ├── repository/                # DAO layer — JDBC (PreparedStatement, try-with-resources) lives ONLY here
@@ -64,7 +64,7 @@ src/main/resources/
 ├── schema.sql                  # DDL for all 4 tables, executed on startup
 └── products.csv                # sample catalog for the CSV-import feature
 
-src/test/java/vn/edu/fpt/
+src/test/java/com/stockpilot/
 └── AppTest.java                # 12 JUnit 5 tests on service-layer behaviour
 ```
 
