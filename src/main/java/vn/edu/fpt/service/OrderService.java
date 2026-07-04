@@ -5,9 +5,14 @@ import vn.edu.fpt.model.Order;
 import vn.edu.fpt.model.OrderItem;
 import vn.edu.fpt.model.Product;
 import vn.edu.fpt.repository.OrderRepository;
+import vn.edu.fpt.service.pricing.NoDiscount;
+import vn.edu.fpt.service.pricing.PricingRule;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class OrderService {
 
@@ -22,8 +27,15 @@ public class OrderService {
     }
 
     public Order placeOrder(Long customerId, Map<String, Integer> cart) {
+        return placeOrder(customerId, cart, new NoDiscount());
+    }
+
+    public Order placeOrder(Long customerId, Map<String, Integer> cart, PricingRule discountRule) {
         if (cart == null || cart.isEmpty()) {
             throw new InvalidInputException("Cart is empty.");
+        }
+        if (discountRule == null) {
+            discountRule = new NoDiscount();
         }
 
         customerService.findById(customerId);
@@ -44,11 +56,20 @@ public class OrderService {
             order.addItem(new OrderItem(null, null, product.getId(), qty, product.getPrice()));
         }
 
+        BigDecimal discount = discountRule.calculateDiscount(order);
+        order.applyDiscount(discount);
+
         orderRepository.save(order);
         return order;
     }
 
     public List<Order> listAll() {
         return orderRepository.findAll();
+    }
+
+    public List<Order> listAllSortedByDateDesc() {
+        return orderRepository.findAll().stream()
+                .sorted(Comparator.comparing(Order::getOrderDate).reversed())
+                .collect(Collectors.toList());
     }
 }

@@ -62,4 +62,16 @@ public class ProductService {
                 .sorted(Comparator.comparingInt(Product::getStockQuantity))
                 .collect(Collectors.toList());
     }
+
+    public List<Product> listSortedByPriceAsc() {
+        return productRepository.findAll().stream()
+                .sorted(Comparator.comparing(Product::getPrice))
+                .collect(Collectors.toList());
+    }
+
+    public List<Product> listSortedByName() {
+        return productRepository.findAll().stream()
+                .sorted(Comparator.comparing(Product::getName, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
 }

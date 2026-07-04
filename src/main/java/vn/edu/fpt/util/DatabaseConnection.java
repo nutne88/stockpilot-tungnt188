@@ -39,10 +39,16 @@ public class DatabaseConnection {
                         id BIGINT AUTO_INCREMENT PRIMARY KEY,
                         customer_id BIGINT NOT NULL,
                         order_date TIMESTAMP NOT NULL,
+                        subtotal DECIMAL(15, 2) NOT NULL DEFAULT 0,
+                        discount_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
                         total_amount DECIMAL(15, 2) NOT NULL,
                         FOREIGN KEY (customer_id) REFERENCES customers(id)
                     );
                 """;
+        String addSubtotalColumn =
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal DECIMAL(15, 2) NOT NULL DEFAULT 0;";
+        String addDiscountColumn =
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(15, 2) NOT NULL DEFAULT 0;";
 
         String createOrderItemTable = """
                     CREATE TABLE IF NOT EXISTS order_items (
@@ -60,6 +66,8 @@ public class DatabaseConnection {
             stmt.execute(createProductTable);
             stmt.execute(createCustomerTable);
             stmt.execute(createOrderTable);
+            stmt.execute(addSubtotalColumn);
+            stmt.execute(addDiscountColumn);
             stmt.execute(createOrderItemTable);
             System.out.println("[DB] Database schema initialized successfully.");
         } catch (SQLException e) {

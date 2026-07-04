@@ -10,25 +10,39 @@ public class Order {
     private Long id;
     private Long customerId;
     private LocalDateTime orderDate;
+    private BigDecimal subtotal;
+    private BigDecimal discountAmount;
     private BigDecimal totalAmount;
     private List<OrderItem> items = new ArrayList<>();
 
     public Order() {
         this.orderDate = LocalDateTime.now();
+        this.subtotal = BigDecimal.ZERO;
+        this.discountAmount = BigDecimal.ZERO;
         this.totalAmount = BigDecimal.ZERO;
     }
 
-    public Order(Long id, Long customerId, LocalDateTime orderDate, BigDecimal totalAmount) {
+    public Order(Long id, Long customerId, LocalDateTime orderDate,
+                 BigDecimal subtotal, BigDecimal discountAmount, BigDecimal totalAmount) {
         this.id = id;
         this.customerId = customerId;
         this.orderDate = orderDate;
+        this.subtotal = subtotal;
+        this.discountAmount = discountAmount;
         this.totalAmount = totalAmount;
     }
 
     public void addItem(OrderItem item) {
         this.items.add(item);
         BigDecimal itemTotal = item.getUnitPrice().multiply(new BigDecimal(item.getQuantity()));
-        this.totalAmount = this.totalAmount.add(itemTotal);
+        this.subtotal = this.subtotal.add(itemTotal);
+        this.totalAmount = this.subtotal.subtract(this.discountAmount);
+    }
+
+    public void applyDiscount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount == null ? BigDecimal.ZERO : discountAmount;
+        BigDecimal newTotal = this.subtotal.subtract(this.discountAmount);
+        this.totalAmount = newTotal.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newTotal;
     }
 
     public Long getId() {
@@ -55,6 +69,22 @@ public class Order {
         this.orderDate = orderDate;
     }
 
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
     public BigDecimal getTotalAmount() {
         return totalAmount;
     }
@@ -73,8 +103,8 @@ public class Order {
 
     @Override
     public String toString() {
-        return String.format("Order #%d | Customer: %d | Date: %s | Total: %s | Items: %d",
-                id, customerId, orderDate, totalAmount, items.size());
+        return String.format("Order #%d | Customer: %d | Date: %s | Subtotal: %s | Discount: %s | Total: %s | Items: %d",
+                id, customerId, orderDate, subtotal, discountAmount, totalAmount, items.size());
     }
 
 

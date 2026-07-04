@@ -1,27 +1,31 @@
 package vn.edu.fpt.repository;
 
+import vn.edu.fpt.exception.DataAccessException;
+import vn.edu.fpt.exception.InsufficientStockException;
 import vn.edu.fpt.model.Order;
 import vn.edu.fpt.model.OrderItem;
 import vn.edu.fpt.util.DatabaseConnection;
-import vn.edu.fpt.exception.DataAccessException;
-import vn.edu.fpt.exception.InvalidInputException;
 
 import java.sql.*;
+import java.util.*;
 
-public class OrderRepository {
+public class OrderRepository implements Repository<Order, Long> {
 
-    public void executeOrderTransaction(Order order) {
+    @Override
+    public void save(Order order) {
         Connection conn = null;
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
-            String insertOrderSql = "INSERT INTO orders (customer_id, order_date, total_amount) VALUES (?, ?, ?)";
+            String insertOrderSql = "INSERT INTO orders (customer_id, order_date, subtotal, discount_amount, total_amount) VALUES (?, ?, ?, ?, ?)";
             Long orderId = null;
             try (PreparedStatement pstmt = conn.prepareStatement(insertOrderSql, Statement.RETURN_GENERATED_KEYS)) {
                 pstmt.setLong(1, order.getCustomerId());
                 pstmt.setTimestamp(2, Timestamp.valueOf(order.getOrderDate()));
-                pstmt.setBigDecimal(3, order.getTotalAmount());
+                pstmt.setBigDecimal(3, order.getSubtotal());
+                pstmt.setBigDecimal(4, order.getDiscountAmount());
+                pstmt.setBigDecimal(5, order.getTotalAmount());
                 pstmt.executeUpdate();
 
                 try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
@@ -43,7 +47,8 @@ public class OrderRepository {
                             int currentStock = rs.getInt("stock_quantity");
                             String prodName = rs.getString("name");
                             if (currentStock < item.getQuantity()) {
-                                throw new InvalidInputException("Stocks not enough for product: " + prodName + " (Stocks: " + currentStock + ")");
+                                throw new InsufficientStockException(
+                                        "Not enough stock for product: " + prodName + " (available: " + currentStock + ")");
                             }
                         }
                     }
@@ -64,28 +69,100 @@ public class OrderRepository {
                 }
             }
 
+            order.setId(orderId);
             conn.commit();
-            System.out.println("[Transaction] Order processed and stock deducted successfully.");
 
+        } catch (InsufficientStockException e) {
+            rollbackQuietly(conn);
+            throw e;
         } catch (Exception e) {
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                    System.err.println("[Transaction] Transaction rolled back due to error!");
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
+            rollbackQuietly(conn);
             throw new DataAccessException("Order processing failed: " + e.getMessage(), e);
         } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+            closeQuietly(conn);
+        }
+    }
+
+    @Override
+    public List<Order> findAll() {
+        Map<Long, Order> ordersById = new LinkedHashMap<>();
+
+        String orderSql = "SELECT * FROM orders ORDER BY id";
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(orderSql)) {
+
+            while (rs.next()) {
+                Order order = new Order(
+                        rs.getLong("id"),
+                        rs.getLong("customer_id"),
+                        rs.getTimestamp("order_date").toLocalDateTime(),
+                        rs.getBigDecimal("subtotal"),
+                        rs.getBigDecimal("discount_amount"),
+                        rs.getBigDecimal("total_amount"));
+                ordersById.put(order.getId(), order);
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Error fetching orders", e);
+        }
+
+        String itemSql = "SELECT * FROM order_items ORDER BY order_id";
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(itemSql)) {
+
+            while (rs.next()) {
+                Order order = ordersById.get(rs.getLong("order_id"));
+                if (order != null) {
+                    order.getItems().add(new OrderItem(
+                            rs.getLong("id"),
+                            rs.getLong("order_id"),
+                            rs.getLong("product_id"),
+                            rs.getInt("quantity"),
+                            rs.getBigDecimal("unit_price")));
                 }
             }
+        } catch (SQLException e) {
+            throw new DataAccessException("Error fetching order items", e);
+        }
+
+        return new ArrayList<>(ordersById.values());
+    }
+
+    @Override
+    public Optional<Order> findById(Long id) {
+        return findAll().stream()
+                .filter(o -> o.getId().equals(id))
+                .findFirst();
+    }
+
+    @Override
+    public void update(Order order) {
+        throw new UnsupportedOperationException("Orders are immutable once placed; there is no update flow.");
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        throw new UnsupportedOperationException("Orders cannot be deleted; they are the audit trail.");
+    }
+
+    private void rollbackQuietly(Connection conn) {
+        if (conn == null) return;
+        try {
+            conn.rollback();
+            System.err.println("[Transaction] Rolled back — stock and order data unchanged.");
+        } catch (SQLException ex) {
+            System.err.println("[Transaction] Rollback failed: " + ex.getMessage());
+        }
+    }
+
+    private void closeQuietly(Connection conn) {
+        if (conn == null) return;
+        try {
+            conn.setAutoCommit(true);
+            conn.close();
+        } catch (SQLException e) {
+            System.err.println("[Transaction] Error closing connection: " + e.getMessage());
         }
     }
 }
